@@ -196,8 +196,22 @@ def normalize(labels: dict, catalog: Catalog, previous: Optional[dict] = None, *
 
     _infer(ctx)
     _cross_validate(ctx)
+    _drop_already_answered(ctx)
     _annotate_unmapped(result)
     return result
+
+
+def _drop_already_answered(ctx):
+    """이번 발화에 빠진 칸이 이미 저장돼 있으면 다시 묻지 않는다 (8.9 부분 답 합치기).
+
+    예: 1턴 "소주 3" (수량 저장, 단위 재질문) -> 2턴 "병이요"에는 수량이 없지만
+        수량은 이미 저장돼 있으므로 재질문하지 않는다.
+    """
+    ctx.result.records = [
+        r for r in ctx.result.records
+        if not (r.resolution_status == "PARTIAL" and r.reason == "MISSING"
+                and (r.field_id, r.repeat_key) in ctx.previous)
+    ]
 
 
 # ================================================================ 1. 일반 사실

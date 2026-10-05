@@ -123,8 +123,9 @@ def test_partial_answers_merge_across_turns(conn, catalog):
     normalize_and_save(conn, "s7", _labels(_fact("Q7_1", "amounts[0].beverage", "소주"),
                                            _fact("Q7_1", "amounts[0].amount", 3), unit_missing), catalog)
     assert current_answer(conn, "s7", "Q7_1.unit", "soju")["status"] == "PARTIAL"
-    normalize_and_save(conn, "s7", _labels(_fact("Q7_1", "amounts[0].beverage", "소주"),
-                                           _fact("Q7_1", "amounts[0].unit", "병")), catalog)
+    result, _ = normalize_and_save(conn, "s7", _labels(_fact("Q7_1", "amounts[0].beverage", "소주"),
+                                                       _fact("Q7_1", "amounts[0].unit", "병")), catalog)
+    assert not result.to_clarify()                 # 이미 저장된 수량은 다시 묻지 않음
     assert current_answer(conn, "s7", "Q7_1.amount", "soju")["value"] == 3
     assert current_answer(conn, "s7", "Q7_1.unit", "soju")["value"] == "bottle"
 

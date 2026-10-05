@@ -13,6 +13,8 @@ LoRA-A가 추출한 JSON(`facts / intents / relations / unmapped_facts`)을 받�
 source .venv/bin/activate
 python -m pytest -q          # 전체 테스트 (397개)
 python -m normalizer.run     # 100건 정규화 -> output/normalized.jsonl, output/summary.md
+python demo.py               # 몇 가지 답변을 넣어 결과 보기
+python demo2.py              # 명세 규칙별 71개 사례 확인 + 여러 턴 대화를 DB 복사본에 저장
 ```
 
 `dataset/` 폴더에 우석 님 데이터 패키지가 있어야 합니다 (Git에는 올리지 않음).
