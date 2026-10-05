@@ -13,7 +13,7 @@
 import sqlite3
 
 ACTOR = "normalizer"
-RULESET_VERSION = "normalizer-0.1"
+RULESET_VERSION = "normalizer-0.4"
 
 
 def connect(db_path):
@@ -48,6 +48,25 @@ def current_answer(conn, session_id, field_id, repeat_key=""):
     status, vb, vn, vo, vt, rev = row
     value = next((v for v in (vb, vn, vo, vt) if v is not None), None)
     return {"status": status, "value": value, "revision": rev}
+
+
+def confirmed_answers(conn, session_id):
+    """세션에 저장된 확정 답 -> {(field_id, repeat_key): 값}. 교차 검증의 previous로 쓴다."""
+    out = {}
+    for field_id, key, vb, vn, vo, vt in conn.execute(
+        "SELECT field_id, repeat_key, value_boolean, value_number, value_option, value_text"
+        " FROM current_answers WHERE session_id=? AND resolution_status='CONFIRMED'",
+        (session_id,),
+    ):
+        out[(field_id, key)] = next((v for v in (vb, vn, vo, vt) if v is not None), None)
+    return out
+
+
+def normalize_and_save(conn, session_id, labels, catalog, version_id="national_health_2026_v1"):
+    """한 턴 처리: 저장된 답을 읽어 교차 검증까지 포함해 정규화하고 저장한다."""
+    from .normalize import normalize
+    result = normalize(labels, catalog, confirmed_answers(conn, session_id))
+    return result, save_result(conn, session_id, result, version_id)
 
 
 def save_result(conn, session_id, result, version_id="national_health_2026_v1"):

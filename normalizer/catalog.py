@@ -20,9 +20,11 @@ class FieldDef:
     item_id: str             # 예: "Q7_1"
     field_name: str          # 예: "amount"
     data_type: str           # boolean / integer / number / option
+    unit: str                # 예: "개비", "년", "minute" (없으면 None)
     constraints: dict        # 예: {"minimum": 0, "maximum": 7}
     repeat_keys: tuple       # 예: ("soju", "beer", ...) 또는 ("",)
     options: frozenset = field(default_factory=frozenset)  # 선택지 코드
+    option_labels: dict = field(default_factory=dict)      # DB 라벨 -> 코드 (예: "주" -> "week")
 
 
 class Catalog:
@@ -30,14 +32,15 @@ class Catalog:
         self.version_id = version_id
         self.fields = {}
         with sqlite3.connect(db_path) as conn:
-            options = {}
-            for field_id, code in conn.execute(
-                "SELECT field_id, option_code FROM field_options WHERE version_id=?",
+            options, labels = {}, {}
+            for field_id, code, label in conn.execute(
+                "SELECT field_id, option_code, label FROM field_options WHERE version_id=?",
                 (version_id,),
             ):
                 options.setdefault(field_id, set()).add(code)
-            for field_id, item_id, name, dtype, cons, keys in conn.execute(
-                "SELECT field_id, item_id, field_name, data_type, constraints_json,"
+                labels.setdefault(field_id, {})[label] = code
+            for field_id, item_id, name, dtype, unit, cons, keys in conn.execute(
+                "SELECT field_id, item_id, field_name, data_type, unit, constraints_json,"
                 " repeat_keys_json FROM question_fields WHERE version_id=?",
                 (version_id,),
             ):
@@ -46,9 +49,11 @@ class Catalog:
                     item_id=item_id,
                     field_name=name,
                     data_type=dtype,
+                    unit=unit,
                     constraints=json.loads(cons or "{}"),
                     repeat_keys=tuple(json.loads(keys or '[""]')),
                     options=frozenset(options.get(field_id, ())),
+                    option_labels=labels.get(field_id, {}),
                 )
         if not self.fields:
             raise ValueError(f"DB에 {version_id} 필드 정의가 없습니다: {db_path}")

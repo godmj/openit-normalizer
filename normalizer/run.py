@@ -39,7 +39,9 @@ def main():
                 {k: v for k, v in asdict(r).items() if k not in ("evidence",)}
                 for r in result.records
             ],
+            "not_applicable": result.not_applicable,
             "needs_clarify": any(r.needs_clarify for r in result.records),
+            "needs_confirm": any(r.needs_confirm for r in result.records),
         })
 
     with open(OUT / "normalized.jsonl", "w", encoding="utf-8") as f:
@@ -52,6 +54,7 @@ def main():
         f"- 사례 수: {len(cases)}",
         f"- 생성된 답변 행: {sum(status_count.values())}",
         f"- 재질문 필요 사례: {sum(r['needs_clarify'] for r in rows)}",
+        f"- 저장 후 확인 질문 사례: {sum(r['needs_confirm'] for r in rows)}",
         "",
         "## 상태별",
         "",
